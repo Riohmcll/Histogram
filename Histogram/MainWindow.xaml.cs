@@ -55,11 +55,11 @@ namespace Histogram
 
         void CreateHist(out Mat HistogramMat, int[] Columns, float max)
         {
-            HistogramMat = new Mat(100, 180, MatType.CV_8UC3);
+            HistogramMat = new Mat(100, 180 - exValueBias, MatType.CV_8UC3);
             Vec3b cyan = new Vec3b(byte.MaxValue, byte.MaxValue, 0);
             Vec3b red = new Vec3b(0, 0, byte.MaxValue);
 
-            for (int i = 0; i < 180; i++)
+            for (int i = 0; i < 180 - exValueBias; i++)
             {
                 float columnPercent = Columns[i] / max;
                 for (int j = 0; j < 100; j++)
@@ -122,7 +122,7 @@ namespace Histogram
             double sum = 0;
             int n = 0;
 
-            for (int i = 0; i < Hues.Length; i++)
+            for (int i = 0; i < Hues.Length - exValueBias; i++)
             {
                 sum += Hues[i] * i;
                 n += Hues[i];
@@ -133,7 +133,7 @@ namespace Histogram
             double sqrdiff = 0;
 
 
-            for (int i = 0; i < Hues.Length; i++)
+            for (int i = 0; i < Hues.Length - exValueBias; i++)
             {
                 var diff = i - avg;
                 sqrdiff += diff * diff * Hues[i];
@@ -147,6 +147,7 @@ namespace Histogram
 
         Mat HSVImage;
         Mat refImage;
+        int exValueBias = 1;
         private void ShowImageAndHist()
         {
 
@@ -162,7 +163,7 @@ namespace Histogram
 
 
 
-            CreateHist(out var HistogramMat, Hues, (float)refImage.Height * refImage.Width / 100);
+            CreateHist(out var HistogramMat, Hues, Hues[Hues.Length-1]);
 
             ShowMat(RefImage, refImage);
 
