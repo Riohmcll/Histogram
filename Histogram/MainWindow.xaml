@@ -12,8 +12,10 @@
     <Grid>
         <Image Name="RefImage" HorizontalAlignment="Left" Height="419" Margin="393,0,0,0" VerticalAlignment="Top" Width="399"/>
         <Image Name="HistogramImage" HorizontalAlignment="Left" Height="207" Margin="10,166,0,0" VerticalAlignment="Top" Width="378"/>
-        <Label Name="Hist" Content="Label" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="286"/>
-
+        
         <Button Click="Button_Click" Content="ChangeFile" HorizontalAlignment="Left" Margin="44,59,0,0" VerticalAlignment="Top" Width="75"/>
+        <Slider Name="Satvalue"  ValueChanged="Slider_ValueChanged" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,105,0,0" Width="361" Value="50" Maximum="100"/>
+        <Slider Name="ValValue"  ValueChanged="Slider_ValueChanged" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,82,0,0" Width="361" Value="50" Maximum="100"/>
+        <Label Name="Stat"  Content="Label" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,132,0,0" Width="436"/>
     </Grid>
 </Window>

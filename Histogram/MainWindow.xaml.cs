@@ -25,8 +25,9 @@ namespace Histogram
 
     public partial class MainWindow : System.Windows.Window
     {
-        void CreateHist(Mat HistogramMat, Mat HisResult, float max, out List<float> Columns)
+        void CreateHist(out Mat HistogramMat, Mat HisResult, float max, out List<float> Columns)
         {
+            HistogramMat = new Mat(100, 180, MatType.CV_8UC3);
             Vec3b cyan = new Vec3b(byte.MaxValue, byte.MaxValue, 0);
             Vec3b red = new Vec3b(0, 0, byte.MaxValue);
             Columns = new List<float>();
@@ -52,40 +53,120 @@ namespace Histogram
             }
         }
 
+        void CreateHist(out Mat HistogramMat, int[] Columns, float max)
+        {
+            HistogramMat = new Mat(100, 180, MatType.CV_8UC3);
+            Vec3b cyan = new Vec3b(byte.MaxValue, byte.MaxValue, 0);
+            Vec3b red = new Vec3b(0, 0, byte.MaxValue);
+
+            for (int i = 0; i < 180; i++)
+            {
+                float columnPercent = Columns[i] / max;
+                for (int j = 0; j < 100; j++)
+                {
+                    if ((100 - j) < columnPercent * 100)
+                    {
+                        HistogramMat.At<Vec3b>(j, i) = cyan;
+                    }
+                    else
+                    {
+                        HistogramMat.At<Vec3b>(j, i) = red;
+                    }
+                }
+            }
+        }
+
         private void ShowImageAndHist(String file)
         {
-            Mat refImage = new Mat(file);
-            ShowImageAndHist(refImage);
+            refImage = new Mat(file);
+            ShowImageAndHist();
         }
-        private void ShowImageAndHist(Mat refImage)
+
+        private void ShowMat(Image location, Mat mat)
+        {
+            BitmapImage bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = mat.ToMemoryStream();
+            bitmapImage.EndInit();
+            location.Source = bitmapImage;
+        }
+
+        void CalculateSatHis(Mat HSVImage, out int[] Hues, double threshHoldS, double threshHoldV)
+        {
+            Hues = new int[180];
+            if (HSVImage == null)
+                return;
+            for (int i = 0; i < Hues.Length; i++)
+            {
+                Hues[i] = 0;
+            }
+            for (int i = 0; i < HSVImage.Height; i++)
+            {
+                for (int j = 0; j < HSVImage.Width; j++)
+                {
+                    Vec3b color = HSVImage.At<Vec3b>(i, j);
+                    if (color.Item1 < threshHoldS && color.Item2 < threshHoldV)
+                    {
+                        if (color.Item0 > 179)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            Hues[color.Item0]++;
+                        }
+                    }
+                }
+            }
+            Array.Sort<int>(Hues);
+            double sum = 0;
+            int n = 0;
+
+            for (int i = 0; i < Hues.Length; i++)
+            {
+                sum += Hues[i] * i;
+                n += Hues[i];
+
+            }
+            double avg = sum / n;
+
+            double sqrdiff = 0;
+
+
+            for (int i = 0; i < Hues.Length; i++)
+            {
+                var diff = i - avg;
+                sqrdiff += diff * diff * Hues[i];
+            }
+            sqrdiff /= avg;
+
+            double stderr = Math.Sqrt(sqrdiff / n);
+            double stddiv = Math.Sqrt(sqrdiff);
+            Stat.Content = $"avg:{avg}, stderr:{stderr},\n stddiv:{stddiv}";
+        }
+
+        Mat HSVImage;
+        Mat refImage;
+        private void ShowImageAndHist()
         {
 
-            Mat HSVImage = refImage.CvtColor(ColorConversionCodes.BGR2HSV);
+            HSVImage = refImage.CvtColor(ColorConversionCodes.BGR2HSV);
 
             Mat HisResult = new Mat();
             Cv2.CalcHist(new Mat[] { HSVImage }, new int[] { 0 }, null, HisResult, 1, new int[] { 18 }, new Rangef[] { new Rangef(0, 180) });
+
             Mat SatuatedImage = new Mat();
-            Cv2.ColorChange(HSVImage, null, SatuatedImage,1,4,1);
-            
-            Mat HistogramMat = new Mat(100, 180, MatType.CV_8UC3);
+            Cv2.ColorChange(HSVImage, null, SatuatedImage, 1, 4, 1);
 
-            CreateHist(HistogramMat, HisResult, (float)RefImage.Height * refImage.Width / 2, out var Columns);
+            CalculateSatHis(HSVImage, out var Hues, Satvalue.Value, ValValue.Value);
 
-            string combinedString = string.Join(", \n", Columns.ToArray());
 
-            Hist.Content = combinedString;
 
-            BitmapImage bitmapImage = new BitmapImage();
-            bitmapImage.BeginInit();
-            bitmapImage.StreamSource = HSVImage.ToMemoryStream();
-            bitmapImage.EndInit();
-            RefImage.Source = bitmapImage;
+            CreateHist(out var HistogramMat, Hues, (float)refImage.Height * refImage.Width / 100);
 
-            BitmapImage bitmapHistImage = new BitmapImage();
-            bitmapHistImage.BeginInit();
-            bitmapHistImage.StreamSource = HistogramMat.ToMemoryStream();
-            bitmapHistImage.EndInit();
-            HistogramImage.Source = bitmapHistImage;
+            ShowMat(RefImage, refImage);
+
+            ShowMat(HistogramImage, HistogramMat);
 
         }
 
@@ -121,5 +202,18 @@ namespace Histogram
             }
 
         }
+
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (refImage == null) return;
+            if (HSVImage == null) return;
+            CalculateSatHis(HSVImage, out var Hues, Satvalue.Value, ValValue.Value);
+
+            CreateHist(out var HistogramMat, Hues, (float)refImage.Height * refImage.Width / 100);
+
+
+            ShowMat(HistogramImage, HistogramMat);
+        }
+
     }
 }
