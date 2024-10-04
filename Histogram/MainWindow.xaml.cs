@@ -105,7 +105,7 @@ namespace Histogram
                 for (int j = 0; j < HSVImage.Width; j++)
                 {
                     Vec3b color = HSVImage.At<Vec3b>(i, j);
-                    if (color.Item1 < threshHoldS && color.Item2 < threshHoldV)
+                    if (color.Item1 < threshHoldS && color.Item2 < threshHoldV && color.Item1 >= 1)
                     {
                         if (color.Item0 > 179)
                         {
@@ -118,7 +118,7 @@ namespace Histogram
                     }
                 }
             }
-            Array.Sort<int>(Hues);
+
             double sum = 0;
             int n = 0;
 
@@ -147,7 +147,20 @@ namespace Histogram
 
         Mat HSVImage;
         Mat refImage;
-        int exValueBias = 1;
+        int exValueBias = 0;
+
+        void ThickenCanny(Mat Canny, out Mat ThickCanny)
+        {
+            ThickCanny = new Mat(Canny.Height,Canny.Width,Canny.Type());
+            for(int i= 0; i < Canny.Height; i++)
+            {
+                for (int j = 0; j < Canny.Width; j++)
+                {
+
+                }
+            }
+        }
+
         private void ShowImageAndHist()
         {
 
@@ -157,15 +170,20 @@ namespace Histogram
             Cv2.CalcHist(new Mat[] { HSVImage }, new int[] { 0 }, null, HisResult, 1, new int[] { 18 }, new Rangef[] { new Rangef(0, 180) });
 
             Mat SatuatedImage = new Mat();
-            Cv2.ColorChange(HSVImage, null, SatuatedImage, 1, 4, 1);
+            Cv2.ColorChange(HSVImage, null, SatuatedImage, 1, 10, 10);
+
+            Mat Canny = new Mat();
+            Cv2.Canny(refImage, Canny, 255 / 3, 255);
+            SatuatedImage.CvtColor(ColorConversionCodes.HSV2BGR);
+
 
             CalculateSatHis(HSVImage, out var Hues, Satvalue.Value, ValValue.Value);
 
 
 
-            CreateHist(out var HistogramMat, Hues, Hues[Hues.Length-1]);
+            CreateHist(out var HistogramMat, Hues, Hues.Max());
 
-            ShowMat(RefImage, refImage);
+            ShowMat(RefImage, Canny);
 
             ShowMat(HistogramImage, HistogramMat);
 
@@ -174,6 +192,7 @@ namespace Histogram
         public MainWindow()
         {
             InitializeComponent();
+
             ShowImageAndHist(@"C:\Users\huo\Desktop\portrait.jpg");
         }
 
@@ -210,7 +229,7 @@ namespace Histogram
             if (HSVImage == null) return;
             CalculateSatHis(HSVImage, out var Hues, Satvalue.Value, ValValue.Value);
 
-            CreateHist(out var HistogramMat, Hues, (float)refImage.Height * refImage.Width / 100);
+            CreateHist(out var HistogramMat, Hues, Hues.Max()) ;
 
 
             ShowMat(HistogramImage, HistogramMat);
